@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { FaCheckCircle, FaRegCircle, FaLock, FaTrophy } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { doc, updateDoc, increment } from 'firebase/firestore'

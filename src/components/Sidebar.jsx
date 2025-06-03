@@ -1,3 +1,4 @@
+import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaTimes, FaHome, FaCalendarAlt, FaTrophy, FaUser } from 'react-icons/fa'
 import { motion } from 'framer-motion'

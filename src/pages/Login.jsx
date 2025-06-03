@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { FaEnvelope, FaLock, FaSpinner, FaUserAlt } from 'react-icons/fa'
+import { FaEnvelope, FaLock, FaSpinner, FaUserAlt, FaExternalLinkAlt } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { toast } from 'react-toastify'
 
@@ -10,8 +10,16 @@ function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
-  const { login, loginWithDemo } = useAuth()
+  const [bypassLoading, setBypassLoading] = useState(false)
+  const { login, loginWithDemo, enableBypassMode, bypassMode, currentUser } = useAuth()
   const navigate = useNavigate()
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (bypassMode || currentUser) {
+      navigate('/')
+    }
+  }, [bypassMode, currentUser, navigate])
   
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -27,12 +35,10 @@ function Login() {
       toast.success('Login successful!')
       navigate('/')
     } catch (error) {
-      console.error("Login error:", error)
+      console.error(error)
       let errorMessage = 'Failed to log in'
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = 'Invalid email or password'
-      } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid credentials'
       }
       toast.error(errorMessage)
     } finally {
@@ -43,7 +49,7 @@ function Login() {
   const handleDemoLogin = async () => {
     setDemoLoading(true)
     try {
-      console.log("Attempting demo login from Login component");
+      console.log("Attempting demo login");
       await loginWithDemo()
       toast.success('Demo login successful!')
       navigate('/')
@@ -56,15 +62,28 @@ function Login() {
         errorMessage = 'Demo account exists but cannot be accessed. Please try again.'
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your connection.'
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Demo account setup failed. Please try again.'
-      } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid demo credentials. Please try again.'
       }
       
       toast.error(errorMessage)
     } finally {
       setDemoLoading(false)
+    }
+  }
+
+  const handleBypassLogin = async () => {
+    setBypassLoading(true)
+    try {
+      await enableBypassMode()
+      toast.success('Workshop access granted!')
+      // Force navigation after state update
+      setTimeout(() => {
+        navigate('/', { replace: true })
+      }, 100)
+    } catch (error) {
+      console.error("Bypass login error:", error)
+      toast.error('Failed to access workshop. Please try again.')
+    } finally {
+      setBypassLoading(false)
     }
   }
 
@@ -96,6 +115,31 @@ function Login() {
         className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
       >
         <div className="card py-8 px-4 sm:px-10">
+          {/* Bypass Login Button */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={handleBypassLogin}
+              disabled={bypassLoading}
+              className="btn bg-accent-green text-white hover:bg-accent-green/90 w-full flex justify-center items-center"
+            >
+              {bypassLoading ? (
+                <>
+                  <FaSpinner className="animate-spin mr-2" />
+                  Accessing workshop...
+                </>
+              ) : (
+                <>
+                  <FaExternalLinkAlt className="mr-2" />
+                  Quick Access (No Login Required)
+                </>
+              )}
+            </button>
+            <p className="mt-2 text-xs text-center text-text-secondary">
+              Bypass authentication and access the workshop directly
+            </p>
+          </div>
+
           {/* Demo Account Button */}
           <div className="mb-6">
             <button
@@ -117,7 +161,7 @@ function Login() {
               )}
             </button>
             <p className="mt-2 text-xs text-center text-text-secondary">
-              No sign up required. Explore the platform instantly.
+              No sign up required. Explore the platform with sample data.
             </p>
           </div>
 
