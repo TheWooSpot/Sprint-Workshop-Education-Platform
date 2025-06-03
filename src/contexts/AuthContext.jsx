@@ -13,7 +13,7 @@ const AuthContext = createContext()
 
 // Demo account credentials
 export const DEMO_EMAIL = "demo@example.com"
-export const DEMO_PASSWORD = "demo123"
+export const DEMO_PASSWORD = "demo123456" // Increased password length to meet Firebase requirements
 
 export function useAuth() {
   return useContext(AuthContext)
@@ -59,16 +59,25 @@ export function AuthProvider({ children }) {
 
   async function loginWithDemo() {
     try {
-      // Check if demo account exists
-      const demoUserCredential = await signInWithEmailAndPassword(auth, DEMO_EMAIL, DEMO_PASSWORD)
-        .catch(async () => {
-          // If demo account doesn't exist, create it
-          console.log("Creating demo account...")
-          const userCredential = await createUserWithEmailAndPassword(auth, DEMO_EMAIL, DEMO_PASSWORD)
-          const user = userCredential.user
+      console.log("Starting demo login process");
+      
+      try {
+        // First try to sign in with demo credentials
+        console.log("Attempting to sign in with demo account");
+        const userCredential = await signInWithEmailAndPassword(auth, DEMO_EMAIL, DEMO_PASSWORD);
+        console.log("Demo account exists, logged in successfully");
+        return userCredential;
+      } catch (signInError) {
+        console.log("Demo account sign-in failed:", signInError.code);
+        
+        if (signInError.code === 'auth/user-not-found') {
+          console.log("Creating new demo account");
+          // Create the demo account
+          const userCredential = await createUserWithEmailAndPassword(auth, DEMO_EMAIL, DEMO_PASSWORD);
+          const user = userCredential.user;
           
           // Update profile with display name
-          await updateProfile(user, { displayName: "Demo User" })
+          await updateProfile(user, { displayName: "Demo User" });
           
           // Create user document in Firestore with demo data
           await setDoc(doc(db, 'users', user.uid), {
@@ -84,15 +93,19 @@ export function AuthProvider({ children }) {
               day3: { completed: 0, total: 5 }
             },
             isDemo: true
-          })
+          });
           
-          return userCredential
-        })
-      
-      return demoUserCredential
+          console.log("Demo account created successfully");
+          return userCredential;
+        } else {
+          // If error is not user-not-found, rethrow it
+          console.error("Demo login failed with error:", signInError);
+          throw signInError;
+        }
+      }
     } catch (error) {
-      console.error("Error with demo login:", error)
-      throw error
+      console.error("Error in loginWithDemo function:", error);
+      throw error;
     }
   }
 

@@ -27,10 +27,12 @@ function Login() {
       toast.success('Login successful!')
       navigate('/')
     } catch (error) {
-      console.error(error)
+      console.error("Login error:", error)
       let errorMessage = 'Failed to log in'
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = 'Invalid email or password'
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid credentials'
       }
       toast.error(errorMessage)
     } finally {
@@ -41,12 +43,26 @@ function Login() {
   const handleDemoLogin = async () => {
     setDemoLoading(true)
     try {
+      console.log("Attempting demo login from Login component");
       await loginWithDemo()
       toast.success('Demo login successful!')
       navigate('/')
     } catch (error) {
-      console.error(error)
-      toast.error('Failed to log in with demo account')
+      console.error("Demo login error:", error)
+      let errorMessage = 'Failed to log in with demo account'
+      
+      // More specific error messages
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Demo account exists but cannot be accessed. Please try again.'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.'
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Demo account setup failed. Please try again.'
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid demo credentials. Please try again.'
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setDemoLoading(false)
     }
